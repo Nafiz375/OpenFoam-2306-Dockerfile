@@ -1,0 +1,47 @@
+# Use the official Ubuntu 22.04 image as base
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV WM_PROJECT_VERSION="2306"
+ENV WM_PROJECT_DIR="/opt/OpenFOAM/OpenFOAM-2306"
+
+# Install necessary dependencies
+RUN apt update && apt install -y \
+    sudo \
+    wget \
+    build-essential \
+    cmake \
+    zlib1g-dev \
+    git \
+    flex \
+    bison \
+    libfftw3-dev \
+    gnuplot \
+    libopenmpi-dev \
+    openmpi-bin \
+    software-properties-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and extract OpenFOAM 2306 source code
+RUN wget https://dl.openfoam.com/source/v2306/OpenFOAM-v2306.tgz -O OpenFOAM-2306.tgz && \
+    mkdir -p /opt && \
+    tar -xzf OpenFOAM-2306.tgz -C /opt/ && \
+    mv /opt/OpenFOAM-v2306 /opt/OpenFOAM-2306 && \
+    rm OpenFOAM-2306.tgz
+
+# Set environment variables for OpenFOAM 2306
+RUN echo "source /opt/OpenFOAM-2306/etc/bashrc" >> ~/.bashrc
+
+# Set working directory
+WORKDIR /opt/OpenFOAM-2306
+
+# Build OpenFOAM
+RUN /bin/bash -c "source /opt/OpenFOAM-2306/etc/bashrc && ./Allwmake -j $(nproc)"
+
+# Copy the entry point script for easy execution
+COPY openfoam2306-run /usr/local/bin/openfoam2306-run
+RUN chmod +x /usr/local/bin/openfoam2306-run
+
+# Set default command to run OpenFOAM
+CMD ["/bin/bash"]
